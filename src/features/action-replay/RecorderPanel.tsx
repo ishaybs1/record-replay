@@ -2,6 +2,7 @@ import React from "react";
 import { useRecorder } from "./RecorderContext";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import KernelTraceViewer from "./kernel/KernelTraceViewer";
 
 const Stat: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -42,6 +43,8 @@ export const RecorderPanel: React.FC = () => {
         <p className="text-xs text-muted-foreground">
           The recorder captures clicks, inputs, navigation, and API calls. Use dry run to safely test.
         </p>
+        <div className="h-px bg-border my-2" />
+        <KernelTraceViewer />
       </div>
     </aside>
   );
