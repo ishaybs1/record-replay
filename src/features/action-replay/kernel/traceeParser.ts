@@ -37,6 +37,7 @@ export function parseTracee(text: string): KernelEvent[] {
     const comm = e.processName ?? e.comm ?? e.process?.name;
     const host = e.hostName ?? e.host ?? e.node ?? undefined;
     const containerId = e.containerId ?? e.container?.id ?? undefined;
+    const containerImage = e.containerImage ?? e.container?.image ?? e.image ?? e.container?.imageName ?? undefined;
 
     // Args can be array (Tracee) or object; normalize to object
     let args: Record<string, any> | undefined;
@@ -58,9 +59,53 @@ export function parseTracee(text: string): KernelEvent[] {
       category: categorize(String(name)),
       host,
       containerId,
+      containerImage,
       args,
     } as KernelEvent;
   });
 
   return events.sort((a, b) => a.ts - b.ts);
+}
+
+export function parseTraceeLine(line: string): KernelEvent | undefined {
+  try {
+    const e = JSON.parse(line);
+    const name = e.eventName || e.event || e.name || "unknown";
+    const tsCandidate = e.timestamp || e.time || e.ts || e.eventTS || Date.now();
+    let tsMs = Number(tsCandidate);
+    if (tsMs > 1e13) tsMs = Math.floor(tsMs / 1e6); // ns -> ms
+    else if (tsMs > 1e10) tsMs = Math.floor(tsMs / 1e3); // us -> ms
+
+    const pid = e.processId ?? e.pid ?? e.process?.pid;
+    const tid = e.threadId ?? e.tid ?? e.process?.tid;
+    const comm = e.processName ?? e.comm ?? e.process?.name;
+    const host = e.hostName ?? e.host ?? e.node ?? undefined;
+    const containerId = e.containerId ?? e.container?.id ?? undefined;
+    const containerImage = e.containerImage ?? e.container?.image ?? e.image ?? e.container?.imageName ?? undefined;
+
+    let args: Record<string, any> | undefined;
+    if (Array.isArray(e.args)) {
+      args = {};
+      for (const a of e.args) {
+        if (a && a.name) args[a.name] = a.value;
+      }
+    } else if (e.args && typeof e.args === 'object') {
+      args = e.args;
+    }
+
+    return {
+      ts: tsMs,
+      name: String(name),
+      pid: typeof pid === 'number' ? pid : undefined,
+      tid: typeof tid === 'number' ? tid : undefined,
+      comm: typeof comm === 'string' ? comm : undefined,
+      category: categorize(String(name)),
+      host,
+      containerId,
+      containerImage,
+      args,
+    } as KernelEvent;
+  } catch {
+    return undefined;
+  }
 }

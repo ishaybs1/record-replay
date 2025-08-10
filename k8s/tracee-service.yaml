@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tracee-stream
+  namespace: default
+  labels:
+    app: tracee
+spec:
+  selector:
+    app: tracee
+  ports:
+    - name: ws
+      port: 8081
+      targetPort: ws
+      protocol: TCP

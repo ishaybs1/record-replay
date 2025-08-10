@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: tracee
+  namespace: default
+  labels:
+    app: tracee
+spec:
+  selector:
+    matchLabels:
+      app: tracee
+  template:
+    metadata:
+      labels:
+        app: tracee
+    spec:
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: tracee
+          image: aquasec/tracee:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          command: ["/bin/sh", "-lc"]
+          args:
+            - |
+              tracee --output json --events all > /trace/tracee.ndjson
+          volumeMounts:
+            - name: etc
+              mountPath: /etc
+              readOnly: true
+            - name: usr-src
+              mountPath: /usr/src
+              readOnly: true
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
+            - name: trace
+              mountPath: /trace
+        - name: ndjson-ws
+          image: alpine:3.20
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-lc"]
+          args:
+            - |
+              apk add --no-cache curl coreutils && \
+              curl -L -o /usr/local/bin/websocat https://github.com/vi/websocat/releases/download/v1.11.0/websocat.x86_64-unknown-linux-musl && \
+              chmod +x /usr/local/bin/websocat && \
+              touch /trace/tracee.ndjson && \
+              tail -n +1 -f /trace/tracee.ndjson | stdbuf -oL websocat -s 0.0.0.0:8081 -
+          ports:
+            - containerPort: 8081
+              name: ws
+          volumeMounts:
+            - name: trace
+              mountPath: /trace
+      volumes:
+        - name: etc
+          hostPath:
+            path: /etc
+            type: Directory
+        - name: usr-src
+          hostPath:
+            path: /usr/src
+            type: Directory
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+            type: Directory
+        - name: trace
+          emptyDir: {}

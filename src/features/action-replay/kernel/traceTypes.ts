@@ -16,5 +16,6 @@ export interface KernelEvent {
   category: KernelEventCategory;
   host?: string;
   containerId?: string;
+  containerImage?: string;
   args?: Record<string, any>;
 }

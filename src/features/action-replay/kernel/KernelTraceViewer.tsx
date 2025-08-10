@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { parseTracee } from "./traceeParser";
+import { Input } from "@/components/ui/input";
+import { parseTracee, parseTraceeLine } from "./traceeParser";
 import { KernelEvent, KernelEventCategory } from "./traceTypes";
 
 const categories: KernelEventCategory[] = ["process", "file", "network", "security", "container", "syscall", "other"];
@@ -13,6 +14,10 @@ export default function KernelTraceViewer() {
   const [filters, setFilters] = React.useState<Record<KernelEventCategory, boolean>>({
     process: true, file: true, network: true, security: true, container: true, syscall: true, other: true,
   });
+  const [streamUrl, setStreamUrl] = React.useState<string>("");
+  const [streaming, setStreaming] = React.useState(false);
+  const abortRef = React.useRef<AbortController | null>(null);
+  const wsRef = React.useRef<WebSocket | null>(null);
 
   const onFile = async (file: File) => {
     const text = await file.text();
@@ -26,6 +31,71 @@ export default function KernelTraceViewer() {
   };
 
   const toggle = (c: KernelEventCategory) => setFilters((f) => ({ ...f, [c]: !f[c] }));
+
+  const connect = async () => {
+    if (!streamUrl || streaming) return;
+    try {
+      if (streamUrl.startsWith("ws")) {
+        setStreaming(true);
+        const ws = new WebSocket(streamUrl);
+        wsRef.current = ws;
+        ws.onmessage = (ev) => {
+          if (typeof ev.data !== "string") return;
+          const chunks = ev.data.split(/\r?\n/);
+          for (const line of chunks) {
+            if (!line) continue;
+            const evt = parseTraceeLine(line);
+            if (evt) {
+              setEvents((prev) => {
+                const next = [...prev, evt];
+                return next.length > 5000 ? next.slice(next.length - 5000) : next;
+              });
+            }
+          }
+        };
+        ws.onclose = () => setStreaming(false);
+        ws.onerror = () => setStreaming(false);
+      } else {
+        setStreaming(true);
+        const ctrl = new AbortController();
+        abortRef.current = ctrl;
+        const resp = await fetch(streamUrl, { signal: ctrl.signal });
+        if (!resp.body) throw new Error("No response body");
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const evt = parseTraceeLine(line);
+            if (evt) {
+              setEvents((prev) => {
+                const next = [...prev, evt];
+                return next.length > 5000 ? next.slice(next.length - 5000) : next;
+              });
+            }
+          }
+        }
+        setStreaming(false);
+      }
+    } catch {
+      setStreaming(false);
+    }
+  };
+
+  const disconnect = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    if (wsRef.current) {
+      try { wsRef.current.close(); } catch {}
+      wsRef.current = null;
+    }
+    setStreaming(false);
+  };
 
   const filtered = events.filter((e) => filters[e.category]);
 
@@ -49,6 +119,21 @@ export default function KernelTraceViewer() {
           <Button size="sm" variant="outline" onClick={downloadJSON} disabled={!filtered.length}>Export JSON</Button>
         </div>
       </header>
+      <div className="flex items-center gap-2">
+        <Input
+          type="url"
+          placeholder="ws://tracee-stream.default.svc.cluster.local:8081"
+          value={streamUrl}
+          onChange={(e)=>setStreamUrl(e.target.value)}
+          aria-label="NDJSON stream URL"
+          className="h-8 text-xs"
+        />
+        {!streaming ? (
+          <Button size="sm" variant="secondary" onClick={connect} disabled={!streamUrl}>Connect</Button>
+        ) : (
+          <Button size="sm" variant="destructive" onClick={disconnect}>Disconnect</Button>
+        )}
+      </div>
       <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
         <div>Events: <span className="text-foreground font-medium">{events.length}</span></div>
         <div>Duration: <span className="text-foreground font-medium">{(duration/1000).toFixed(2)}s</span></div>
@@ -70,7 +155,10 @@ export default function KernelTraceViewer() {
               <li key={i} className="px-3 py-2 text-xs">
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-foreground">{e.name}</div>
-                  <div className="text-muted-foreground">{e.comm ?? ""} #{e.pid ?? "-"}</div>
+                  <div className="text-muted-foreground">
+                    {e.comm ?? ""} #{e.pid ?? "-"}
+                    {e.containerImage && <span className="ml-2 opacity-80">({e.containerImage})</span>}
+                  </div>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span className="capitalize">{e.category}</span>
