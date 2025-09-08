@@ -1,0 +1,4 @@
+docker run --rm --pid=host --privileged \
+  -v /tmp/tracee:/tmp/tracee \
+  aquasec/tracee:latest \
+  --output json --events all > /tmp/tracee/trace.ndjson
