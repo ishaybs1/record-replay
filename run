@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Install Tracee on Ubuntu (run once)
-# wget https://github.com/aquasecurity/tracee/releases/latest/download/tracee.tar.gz
-# tar -xzf tracee.tar.gz
-# sudo mv tracee /usr/local/bin/
-# sudo chmod +x /usr/local/bin/tracee
+wget https://github.com/aquasecurity/tracee/releases/latest/download/tracee.tar.gz
+tar -xzf tracee.tar.gz
+sudo mv tracee /usr/local/bin/
+sudo chmod +x /usr/local/bin/tracee
 
 # Create output directory
 mkdir -p /tmp/tracee
