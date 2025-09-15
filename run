@@ -9,5 +9,5 @@ sudo chmod +x /usr/local/bin/tracee
 # Create output directory
 mkdir -p /tmp/tracee
 
-# Run Tracee natively
-sudo tracee --output json --events all > /tmp/tracee/trace.ndjson
+# Run Tracee natively (remove --events to trace all events by default)
+sudo tracee --output json > /tmp/tracee/trace.ndjson
