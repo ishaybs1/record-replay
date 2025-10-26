@@ -233,3 +233,4 @@ trap 'log_warning "Installation interrupted by user"; exit 1' INT
 
 # Run main function
 main "$@"
+

@@ -42,3 +42,4 @@ echo "🌐 App will be available at: http://$VM_IP:8080"
 echo "🎯 Starting development server..."
 
 npm run dev
+
