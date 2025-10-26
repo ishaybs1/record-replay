@@ -48,6 +48,8 @@ export const RecorderPanel: React.FC = () => {
           Records user interactions and saves to logs for Python code generation
         </p>
 
+        <KernelTraceViewer />
+
         {showSettings && (
           <>
             <div className="h-px bg-border my-2" />
@@ -75,8 +77,6 @@ export const RecorderPanel: React.FC = () => {
               <p className="text-xs text-muted-foreground">
                 Advanced options for testing and exporting recordings
               </p>
-              
-              <KernelTraceViewer />
             </div>
           </>
         )}
