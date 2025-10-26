@@ -33,19 +33,13 @@ export const RecorderPanel: React.FC = () => {
         </div>
         
         <div className="flex justify-center">
-          {!isRecording ? (
-            <Button size="lg" onClick={start} aria-label="Start recording" className="w-full">
-              ⏺ Start Recording
-            </Button>
-          ) : (
-            <Button size="lg" variant="destructive" onClick={stop} aria-label="Stop recording" className="w-full">
-              ⏹ Stop Recording
-            </Button>
-          )}
+          <Button size="lg" variant="outline" disabled className="w-full">
+            ⏹ Browser Recorder Disabled
+          </Button>
         </div>
         
         <p className="text-xs text-muted-foreground text-center">
-          Records user interactions and saves to logs for Python code generation
+          Browser recording disabled - only system operations are shown
         </p>
 
         <KernelTraceViewer />
