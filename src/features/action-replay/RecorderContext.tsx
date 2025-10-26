@@ -107,9 +107,8 @@ export const RecorderProvider: React.FC<React.PropsWithChildren> = ({ children }
   if (!recorderRef.current) recorderRef.current = new CoreRecorder();
 
   const start = () => {
-    setEvents([]);
-    recorderRef.current!.start((e) => setEvents((prev) => [...prev, e]));
-    setIsRecording(true);
+    // Browser recording disabled - only system operations are shown
+    console.log("Browser recording is disabled. Use System Operations section for kernel traces.");
   };
 
   const stop = async () => {
@@ -132,7 +131,9 @@ export const RecorderProvider: React.FC<React.PropsWithChildren> = ({ children }
 
   const clear = () => setEvents([]);
 
-  const addNavigate = (url: string) => recorderRef.current!.addNavigate(url);
+  const addNavigate = (url: string) => {
+    // Navigation tracking disabled - no browser events recorded
+  };
 
   const replay = async (opts?: ReplayOptions) => {
     await replayEvents(events, { dryRun: opts?.dryRun ?? dryRun, preserveTiming: opts?.preserveTiming ?? true, timeoutMs: opts?.timeoutMs ?? 3000 });
