@@ -111,10 +111,10 @@ export default function KernelTraceViewer() {
   };
 
   const generateSampleData = () => {
-    // Generate sample syscall data for demonstration
+    // Generate sample syscall data for demonstration - core system operations only
     const sampleEvents: KernelEvent[] = [
       {
-        ts: Date.now() - 1000,
+        ts: Date.now() - 2000,
         name: "openat",
         pid: 1234,
         tid: 1234,
@@ -123,7 +123,7 @@ export default function KernelTraceViewer() {
         args: { pathname: "/etc/passwd", flags: "O_RDONLY" }
       },
       {
-        ts: Date.now() - 800,
+        ts: Date.now() - 1800,
         name: "read",
         pid: 1234,
         tid: 1234,
@@ -132,7 +132,7 @@ export default function KernelTraceViewer() {
         args: { fd: 3, count: 1024 }
       },
       {
-        ts: Date.now() - 600,
+        ts: Date.now() - 1600,
         name: "write",
         pid: 1234,
         tid: 1234,
@@ -141,7 +141,7 @@ export default function KernelTraceViewer() {
         args: { fd: 1, count: 50 }
       },
       {
-        ts: Date.now() - 400,
+        ts: Date.now() - 1400,
         name: "close",
         pid: 1234,
         tid: 1234,
@@ -150,13 +150,58 @@ export default function KernelTraceViewer() {
         args: { fd: 3 }
       },
       {
-        ts: Date.now() - 200,
+        ts: Date.now() - 1200,
         name: "execve",
         pid: 1234,
         tid: 1234,
         comm: "bash",
         category: "syscall",
         args: { filename: "/bin/ls", argv: ["ls", "-la"] }
+      },
+      {
+        ts: Date.now() - 1000,
+        name: "stat",
+        pid: 1234,
+        tid: 1234,
+        comm: "bash",
+        category: "syscall",
+        args: { pathname: "/tmp", statbuf: "0x7fff12345678" }
+      },
+      {
+        ts: Date.now() - 800,
+        name: "chmod",
+        pid: 1234,
+        tid: 1234,
+        comm: "bash",
+        category: "syscall",
+        args: { pathname: "/tmp/file.txt", mode: "0644" }
+      },
+      {
+        ts: Date.now() - 600,
+        name: "unlink",
+        pid: 1234,
+        tid: 1234,
+        comm: "bash",
+        category: "syscall",
+        args: { pathname: "/tmp/tempfile" }
+      },
+      {
+        ts: Date.now() - 400,
+        name: "mkdir",
+        pid: 1234,
+        tid: 1234,
+        comm: "bash",
+        category: "syscall",
+        args: { pathname: "/tmp/newdir", mode: "0755" }
+      },
+      {
+        ts: Date.now() - 200,
+        name: "getpid",
+        pid: 1234,
+        tid: 1234,
+        comm: "bash",
+        category: "syscall",
+        args: {}
       }
     ];
     setEvents(sampleEvents);

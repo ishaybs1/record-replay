@@ -4,7 +4,8 @@ function categorize(name: string): KernelEventCategory {
   const n = name.toLowerCase();
   if (["execve", "execveat", "fork", "vfork", "clone", "clone3", "exit", "setuid", "setgid"].includes(n)) return "process";
   if (["open", "openat", "creat", "rename", "renameat", "unlink", "unlinkat", "read", "write", "close", "chmod", "chown", "stat", "lstat", "fstat"].some(k => n.startsWith(k))) return "file";
-  if (["connect", "accept", "bind", "listen", "send", "sendto", "recv", "recvfrom", "getsockopt", "setsockopt"].some(k => n.startsWith(k))) return "network";
+  // Network events are filtered out - they return "other" to be hidden
+  if (["connect", "accept", "bind", "listen", "send", "sendto", "recv", "recvfrom", "getsockopt", "setsockopt"].some(k => n.startsWith(k))) return "other";
   if (["ptrace", "capset", "capget", "seccomp", "bpf"].some(k => n.startsWith(k))) return "security";
   if (["cgroup", "mount", "umount", "pivot_root"].some(k => n.includes(k))) return "container";
   return "syscall";
