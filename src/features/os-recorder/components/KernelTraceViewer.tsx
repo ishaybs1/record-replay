@@ -155,8 +155,13 @@ export default function KernelTraceViewer() {
     }
 
     // Save to TXT file before stopping
+    console.log(`[DISCONNECT] Total events captured: ${events.length}`);
     if (events.length > 0) {
+      console.log('[DISCONNECT] Calling saveToTxt...');
       saveToTxt(events);
+    } else {
+      console.warn('[DISCONNECT] No events to save! Make sure recording captured events.');
+      alert('No events captured! Check if Tracee is running and sending events.');
     }
 
     abortRef.current?.abort();
@@ -175,8 +180,11 @@ export default function KernelTraceViewer() {
   const duration = from && to ? Math.max(0, to - from) : 0;
 
   const saveToTxt = (eventsToSave: KernelEvent[]) => {
+    console.log(`[SAVE_TXT] Starting save with ${eventsToSave.length} events`);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `os-activity-${timestamp}.txt`;
+    console.log(`[SAVE_TXT] Filename: ${filename}`);
+
     const lines = eventsToSave.map(e => {
       const eventTime = e.ts || e.timestamp || Date.now();
       const time = new Date(eventTime).toISOString();
@@ -188,16 +196,20 @@ export default function KernelTraceViewer() {
       return `[${time}] ${e.category.toUpperCase()} | ${eventName} | PID:${pid} TID:${tid} COMM:${comm} | ${args}`;
     });
     const content = `# Linux OS Activity Log\n# Generated: ${new Date().toISOString()}\n# Total Events: ${eventsToSave.length}\n\n${lines.join('\n')}`;
+    console.log(`[SAVE_TXT] Content length: ${content.length} characters`);
+
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
+    console.log(`[SAVE_TXT] Triggering download...`);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    console.log(`Saved ${eventsToSave.length} events to ${filename} in your Downloads folder`);
+    console.log(`[SAVE_TXT] ✓ Saved ${eventsToSave.length} events to ${filename} in your Downloads folder`);
+    alert(`File saved: ${filename}\nCheck your Downloads folder!\nEvents: ${eventsToSave.length}`);
   };
 
 

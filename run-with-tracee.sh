@@ -145,7 +145,9 @@ trap cleanup SIGINT SIGTERM EXIT
 
 echo -e "${YELLOW}1️⃣  Starting Tracee (kernel tracer)...${NC}"
 # Start Tracee in background, output JSON format
-sudo tracee --output format:json --output option:parse-arguments 2>/dev/null | tee /tmp/tracee/trace.ndjson | websocat -s 8081 &
+# FIXED: Use -o json instead of --output format:json
+# Filter to only capture file creation/opening events (no read/write/close noise)
+sudo tracee -o json --events open,openat,openat2,creat,mkdir,rmdir,unlink,unlinkat,rename,renameat 2>/dev/null | tee /tmp/tracee/trace.ndjson | websocat -s 8081 &
 WEBSOCAT_PID=$!
 
 # Give Tracee time to initialize
