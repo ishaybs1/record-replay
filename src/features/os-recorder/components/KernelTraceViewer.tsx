@@ -17,20 +17,76 @@ export default function KernelTraceViewer() {
   const abortRef = React.useRef<AbortController | null>(null);
   const wsRef = React.useRef<WebSocket | null>(null);
 
-  // Default Tracee WebSocket URL
-  const streamUrl = "ws://tracee-stream.default.svc.cluster.local:8081";
+  // Default Tracee WebSocket URL - try localhost first for development
+  const streamUrl = import.meta.env.VITE_TRACEE_WS_URL || "ws://localhost:8081";
+  const [connectionError, setConnectionError] = React.useState<string | null>(null);
+  const [demoMode, setDemoMode] = React.useState(false);
 
   const toggle = (c: KernelEventCategory) => setFilters((f) => ({ ...f, [c]: !f[c] }));
+
+  // Demo mode - generate fake events for testing
+  const startDemoMode = () => {
+    setDemoMode(true);
+    setStreaming(true);
+    setConnectionError(null);
+    setEvents([]);
+
+    const demoEvents: KernelEvent[] = [
+      { ts: Date.now(), name: "execve", pid: 1234, tid: 1234, comm: "bash", category: "process", eventName: "execve", timestamp: new Date().toISOString(), args: { pathname: "/bin/ls" } },
+      { ts: Date.now() + 100, name: "open", pid: 1234, tid: 1234, comm: "ls", category: "file", eventName: "open", timestamp: new Date().toISOString(), args: { pathname: "/home/user/documents" } },
+      { ts: Date.now() + 200, name: "read", pid: 1234, tid: 1234, comm: "ls", category: "file", eventName: "read", timestamp: new Date().toISOString(), args: { fd: 3, count: 4096 } },
+      { ts: Date.now() + 300, name: "write", pid: 1234, tid: 1234, comm: "ls", category: "file", eventName: "write", timestamp: new Date().toISOString(), args: { fd: 1, count: 512 } },
+      { ts: Date.now() + 400, name: "close", pid: 1234, tid: 1234, comm: "ls", category: "syscall", eventName: "close", timestamp: new Date().toISOString(), args: { fd: 3 } },
+    ];
+
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < demoEvents.length) {
+        setEvents((prev) => [...prev, demoEvents[index]]);
+        index++;
+      } else {
+        // Loop back to start
+        index = 0;
+      }
+    }, 500);
+
+    // Store interval ID for cleanup
+    (abortRef as any).demoInterval = interval;
+  };
+
+  const stopDemoMode = () => {
+    if ((abortRef as any).demoInterval) {
+      clearInterval((abortRef as any).demoInterval);
+      (abortRef as any).demoInterval = null;
+    }
+    setDemoMode(false);
+    setStreaming(false);
+    if (events.length > 0) {
+      saveToTxt(events);
+    }
+  };
 
   const connect = async () => {
     if (streaming) return;
     // Clear previous events when starting new recording
     setEvents([]);
+    setConnectionError(null);
+
     try {
       if (streamUrl.startsWith("ws")) {
         setStreaming(true);
         const ws = new WebSocket(streamUrl);
         wsRef.current = ws;
+
+        // Set a connection timeout
+        const connectionTimeout = setTimeout(() => {
+          if (ws.readyState !== WebSocket.OPEN) {
+            ws.close();
+            setConnectionError(`Cannot connect to Tracee at ${streamUrl}. Make sure Tracee is running.`);
+            setStreaming(false);
+          }
+        }, 5000); // 5 second timeout
+
         ws.onmessage = (ev) => {
           if (typeof ev.data !== "string") return;
           const chunks = ev.data.split(/\r?\n/);
@@ -47,14 +103,18 @@ export default function KernelTraceViewer() {
         };
         ws.onclose = () => {
           console.log("WebSocket connection closed");
+          clearTimeout(connectionTimeout);
           setStreaming(false);
         };
         ws.onerror = (error) => {
           console.error("WebSocket error:", error);
-          // Don't immediately stop - let onclose handle it
+          clearTimeout(connectionTimeout);
+          setConnectionError(`Failed to connect to Tracee WebSocket at ${streamUrl}`);
         };
         ws.onopen = () => {
           console.log("WebSocket connected successfully to Tracee");
+          clearTimeout(connectionTimeout);
+          setConnectionError(null);
         };
       } else {
         setStreaming(true);
@@ -89,6 +149,11 @@ export default function KernelTraceViewer() {
   };
 
   const disconnect = () => {
+    if (demoMode) {
+      stopDemoMode();
+      return;
+    }
+
     // Save to TXT file before stopping
     if (events.length > 0) {
       saveToTxt(events);
@@ -142,11 +207,26 @@ export default function KernelTraceViewer() {
         <h3 className="text-sm font-semibold mb-2">System Operations (Syscalls)</h3>
       </header>
 
+      {connectionError && (
+        <div className="bg-destructive/15 border border-destructive/50 rounded-md p-3 text-xs">
+          <p className="font-semibold text-destructive mb-1">Connection Failed</p>
+          <p className="text-muted-foreground">{connectionError}</p>
+          <p className="text-muted-foreground mt-2">
+            Run Tracee with: <code className="bg-muted px-1 rounded">tracee --output format:json | websocat -s 8081</code>
+          </p>
+        </div>
+      )}
+
       <div className="space-y-2">
         {!streaming ? (
-          <Button size="sm" variant="secondary" onClick={connect} className="w-full">
-            ▶ Start Recording
-          </Button>
+          <>
+            <Button size="sm" variant="secondary" onClick={connect} className="w-full">
+              ▶ Start Recording (Real Tracee)
+            </Button>
+            <Button size="sm" variant="outline" onClick={startDemoMode} className="w-full">
+              🎭 Start Demo Mode (Test UI)
+            </Button>
+          </>
         ) : (
           <Button size="sm" variant="destructive" onClick={disconnect} className="w-full">
             ⏹ Stop Recording (Auto-save TXT)
