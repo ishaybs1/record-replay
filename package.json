@@ -9,7 +9,9 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start:full": "bash run-with-tracee.sh",
+    "start:wsl": "wsl bash -c 'cd $(wslpath -u \"$PWD\") && bash run-with-tracee.sh'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -39,7 +39,29 @@ A real-time Linux operating system activity monitor built with React, TypeScript
 
 ## Quick Start
 
-### Local Development
+### ⚡ One-Command Setup (Ubuntu)
+
+**Want everything working in one command?** Run this on Ubuntu:
+
+```sh
+chmod +x run-with-tracee.sh
+./run-with-tracee.sh
+```
+
+This automatically:
+- ✅ Installs Node.js, Tracee, and all dependencies
+- ✅ Starts Tracee capturing real kernel events
+- ✅ Starts WebSocket server on port 8081
+- ✅ Starts React app on port 8080
+- ✅ Everything works together!
+
+Then open your browser to `http://localhost:8080` and click **"▶ Start Recording (Real Tracee)"**
+
+**See [START.md](START.md) for detailed instructions!**
+
+---
+
+### Local Development (Frontend Only)
 
 ```sh
 # Clone the repository
@@ -54,6 +76,8 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:8080`.
+
+Use **"🎭 Start Demo Mode"** to test the UI without Tracee.
 
 ### Ubuntu Setup
 
