@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 import { parseTracee, parseTraceeLine } from "../parsers/traceeParser";
 import { KernelEvent, KernelEventCategory } from "../types/traceTypes";
 
@@ -14,15 +13,17 @@ export default function KernelTraceViewer() {
   const [filters, setFilters] = React.useState<Record<KernelEventCategory, boolean>>({
     process: false, file: false, network: false, security: false, container: false, syscall: true, other: false,
   });
-  const [streamUrl, setStreamUrl] = React.useState<string>("");
   const [streaming, setStreaming] = React.useState(false);
   const abortRef = React.useRef<AbortController | null>(null);
   const wsRef = React.useRef<WebSocket | null>(null);
 
+  // Default Tracee WebSocket URL
+  const streamUrl = "ws://tracee-stream.default.svc.cluster.local:8081";
+
   const toggle = (c: KernelEventCategory) => setFilters((f) => ({ ...f, [c]: !f[c] }));
 
   const connect = async () => {
-    if (!streamUrl || streaming) return;
+    if (streaming) return;
     // Clear previous events when starting new recording
     setEvents([]);
     try {
@@ -131,19 +132,8 @@ export default function KernelTraceViewer() {
       </header>
 
       <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Input
-            type="url"
-            placeholder="ws://tracee-stream.default.svc.cluster.local:8081"
-            value={streamUrl}
-            onChange={(e)=>setStreamUrl(e.target.value)}
-            aria-label="NDJSON stream URL"
-            className="h-8 text-xs flex-1"
-          />
-        </div>
-
         {!streaming ? (
-          <Button size="sm" variant="secondary" onClick={connect} disabled={!streamUrl} className="w-full">
+          <Button size="sm" variant="secondary" onClick={connect} className="w-full">
             ▶ Start Recording
           </Button>
         ) : (
