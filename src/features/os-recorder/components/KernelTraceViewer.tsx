@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { parseTracee, parseTraceeLine } from "../parsers/traceeParser";
+import { parseTraceeLine } from "../parsers/traceeParser";
 import { KernelEvent, KernelEventCategory } from "../types/traceTypes";
 
 const categories: KernelEventCategory[] = ["process", "file", "network", "security", "container", "syscall", "other"];
@@ -45,8 +45,17 @@ export default function KernelTraceViewer() {
             }
           }
         };
-        ws.onclose = () => setStreaming(false);
-        ws.onerror = () => setStreaming(false);
+        ws.onclose = () => {
+          console.log("WebSocket connection closed");
+          setStreaming(false);
+        };
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          // Don't immediately stop - let onclose handle it
+        };
+        ws.onopen = () => {
+          console.log("WebSocket connected successfully to Tracee");
+        };
       } else {
         setStreaming(true);
         const ctrl = new AbortController();
@@ -102,6 +111,7 @@ export default function KernelTraceViewer() {
 
   const saveToTxt = (eventsToSave: KernelEvent[]) => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `os-activity-${timestamp}.txt`;
     const lines = eventsToSave.map(e => {
       const eventTime = e.ts || e.timestamp || Date.now();
       const time = new Date(eventTime).toISOString();
@@ -117,11 +127,12 @@ export default function KernelTraceViewer() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `os-activity-${timestamp}.txt`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    console.log(`Saved ${eventsToSave.length} events to ${filename} in your Downloads folder`);
   };
 
 
@@ -179,8 +190,8 @@ export default function KernelTraceViewer() {
             ))}
             {!filtered.length && <li className="px-3 py-6 text-center text-muted-foreground">
               <div className="space-y-2">
-                <p>Upload Tracee NDJSON to view system operations (syscalls)</p>
-                <p className="text-xs">Or click "Sample Data" to see example syscalls</p>
+                <p>Click "Start Recording" to capture OS activity</p>
+                <p className="text-xs">Events will appear here in real-time</p>
               </div>
             </li>}
           </ul>
