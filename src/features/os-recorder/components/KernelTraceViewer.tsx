@@ -4,8 +4,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { parseTracee, parseTraceeLine } from "./traceeParser";
-import { KernelEvent, KernelEventCategory } from "./traceTypes";
+import { parseTracee, parseTraceeLine } from "../parsers/traceeParser";
+import { KernelEvent, KernelEventCategory } from "../types/traceTypes";
 
 const categories: KernelEventCategory[] = ["process", "file", "network", "security", "container", "syscall", "other"];
 

@@ -1,73 +1,200 @@
-# Welcome to your Lovable project
+# Linux OS Activity Monitor
 
-## Project info
+A real-time Linux operating system activity monitor built with React, TypeScript, and Tracee eBPF. Monitor kernel-level syscalls, visualize process trees, track file activity, and analyze system operations.
 
-**URL**: https://lovable.dev/projects/952c077f-284d-4a03-8779-4c969037a675
+## Features
 
-## How can I edit this code?
+### 🔍 **Kernel Trace Viewer**
+- Real-time syscall monitoring via Tracee eBPF
+- WebSocket streaming support for live events
+- File upload for analyzing Tracee NDJSON logs
+- Category-based filtering (process, file, security, container, syscall)
+- Export to JSON/CSV formats
 
-There are several ways of editing your application.
+### 🌳 **Process Tree Visualization**
+- Hierarchical process view showing parent-child relationships
+- Event count per process
+- Collapsible tree structure for easy navigation
+- Real-time process tracking
 
-**Use Lovable**
+### 📁 **File Activity Dashboard**
+- Track file I/O operations (read, write, open)
+- Filter files by path
+- View which processes access specific files
+- Top files by operation count
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/952c077f-284d-4a03-8779-4c969037a675) and start prompting.
+### 📊 **Syscall Analytics**
+- Category distribution charts (pie chart visualization)
+- Top processes by syscall count (bar chart)
+- Top syscalls with frequency analysis
+- Duration tracking and event statistics
 
-Changes made via Lovable will be committed automatically to this repo.
+## Technology Stack
 
-**Use your preferred IDE**
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI Components**: shadcn-ui + Radix UI + Tailwind CSS
+- **Charts**: Recharts
+- **Kernel Tracing**: Tracee eBPF (Aqua Security)
+- **Deployment**: Kubernetes-ready with DaemonSet configuration
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Quick Start
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Local Development
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
+# Install dependencies
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:8080`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Ubuntu Setup
 
-**Use GitHub Codespaces**
+For a complete Ubuntu setup with Tracee integration, use the provided scripts:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```sh
+# Complete automated setup
+./install-and-run.sh
 
-## What technologies are used for this project?
+# Or quick setup for experienced users
+./quick-setup.sh
+```
 
-This project is built with:
+See [UBUNTU_SETUP.md](UBUNTU_SETUP.md) for detailed manual setup instructions.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Kubernetes Deployment
 
-## How can I deploy this project?
+Deploy Tracee as a DaemonSet to monitor all nodes in your cluster:
 
-Simply open [Lovable](https://lovable.dev/projects/952c077f-284d-4a03-8779-4c969037a675) and click on Share -> Publish.
+```sh
+# Deploy Tracee DaemonSet
+kubectl apply -f k8s/tracee-daemonset.yaml
 
-## Can I connect a custom domain to my Lovable project?
+# Deploy Tracee Service
+kubectl apply -f k8s/tracee-service.yaml
+```
 
-Yes, you can!
+The Tracee WebSocket stream will be available at:
+```
+ws://tracee-stream.default.svc.cluster.local:8081
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Tracee Configuration
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+The DaemonSet runs two containers per node:
+1. **Tracee** - eBPF-based kernel tracer capturing all syscalls
+2. **Websocat** - WebSocket server streaming events to the UI
+
+## Architecture
+
+```
+src/features/os-recorder/
+├── context/
+│   └── KernelTraceContext.tsx    # Global state for kernel events
+├── components/
+│   ├── KernelTraceViewer.tsx     # Main trace viewer UI
+│   ├── OSRecorderPanel.tsx       # Control panel
+│   ├── ProcessTreeView.tsx       # Process hierarchy
+│   ├── FileActivityDashboard.tsx # File I/O tracking
+│   └── SyscallAnalytics.tsx      # Statistics & charts
+├── parsers/
+│   └── traceeParser.ts           # NDJSON parser for Tracee
+└── types/
+    └── traceTypes.ts             # TypeScript interfaces
+```
+
+## Use Cases
+
+- **System Debugging**: Track down mysterious system behavior
+- **Security Monitoring**: Detect unusual process activity or file access
+- **Performance Analysis**: Identify syscall hotspots and bottlenecks
+- **Container Monitoring**: Track container operations in Kubernetes
+- **DevOps Auditing**: Monitor system-level changes in production
+
+## Event Categories
+
+The application categorizes syscalls into:
+
+- **Process**: `execve`, `fork`, `clone`, `exit`, `setuid`, `setgid`
+- **File**: `open`, `read`, `write`, `close`, `chmod`, `chown`, `stat`
+- **Security**: `ptrace`, `capset`, `seccomp`, `bpf`
+- **Container**: `cgroup`, `mount`, `umount`, `pivot_root`
+- **Syscall**: All other system calls
+- **Other**: Uncategorized events
+
+Network events are captured but filtered by default to reduce noise.
+
+## Export Formats
+
+### JSON Export
+Exports complete trace session with metadata:
+```json
+{
+  "version": 1,
+  "createdAt": "2025-01-15T10:30:00.000Z",
+  "totalEvents": 1523,
+  "events": [...]
+}
+```
+
+### CSV Export
+Tabular format for spreadsheet analysis with columns:
+- Timestamp, Event, PID, TID, Command, Category, Container ID, Container Image, Host, Arguments
+
+## Requirements
+
+### Runtime
+- **Node.js**: 18.x LTS or higher
+- **Linux Kernel**: 4.14+ (for eBPF support)
+- **Privileges**: Root or CAP_SYS_ADMIN for Tracee
+
+### Development
+- npm or yarn
+- TypeScript 5.x
+
+## Project Info
+
+**Lovable Project URL**: https://lovable.dev/projects/952c077f-284d-4a03-8779-4c969037a675
+
+## Development Workflow
+
+### Using Lovable
+Visit the [Lovable Project](https://lovable.dev/projects/952c077f-284d-4a03-8779-4c969037a675) and start prompting. Changes are committed automatically.
+
+### Using Your IDE
+Clone, edit, and push changes. They'll be reflected in Lovable automatically.
+
+### GitHub Codespaces
+Launch a Codespace from the repository for instant cloud-based development.
+
+## Deployment
+
+Deploy to production via Lovable:
+1. Open your [Lovable project](https://lovable.dev/projects/952c077f-284d-4a03-8779-4c969037a675)
+2. Click **Share → Publish**
+
+### Custom Domain
+Connect a custom domain via **Project > Settings > Domains**.
+
+Read more: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## License
+
+This project is open source and available under the MIT License.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+For issues or questions:
+- GitHub Issues: [Report a bug](https://github.com/your-repo/issues)
+- Documentation: Check [UBUNTU_SETUP.md](UBUNTU_SETUP.md) for setup help
