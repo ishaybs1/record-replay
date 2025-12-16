@@ -159,31 +159,22 @@ Tabular format for spreadsheet analysis with columns:
 - npm or yarn
 - TypeScript 5.x
 
-## Project Info
-
-**Lovable Project URL**: https://lovable.dev/projects/952c077f-284d-4a03-8779-4c969037a675
-
 ## Development Workflow
 
-### Using Lovable
-Visit the [Lovable Project](https://lovable.dev/projects/952c077f-284d-4a03-8779-4c969037a675) and start prompting. Changes are committed automatically.
-
 ### Using Your IDE
-Clone, edit, and push changes. They'll be reflected in Lovable automatically.
+Clone, edit, and push changes to your repository.
 
 ### GitHub Codespaces
 Launch a Codespace from the repository for instant cloud-based development.
 
 ## Deployment
 
-Deploy to production via Lovable:
-1. Open your [Lovable project](https://lovable.dev/projects/952c077f-284d-4a03-8779-4c969037a675)
-2. Click **Share → Publish**
-
-### Custom Domain
-Connect a custom domain via **Project > Settings > Domains**.
-
-Read more: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Deploy to your preferred hosting platform:
+- Vercel
+- Netlify
+- AWS Amplify
+- GitHub Pages
+- Or any static hosting service
 
 ## License
 
