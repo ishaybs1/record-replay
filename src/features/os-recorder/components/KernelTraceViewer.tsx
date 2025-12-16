@@ -16,8 +16,10 @@ export default function KernelTraceViewer() {
   });
   const [streamUrl, setStreamUrl] = React.useState<string>("");
   const [streaming, setStreaming] = React.useState(false);
+  const [autoLog, setAutoLog] = React.useState(true);
   const abortRef = React.useRef<AbortController | null>(null);
   const wsRef = React.useRef<WebSocket | null>(null);
+  const logIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const onFile = async (file: File) => {
     const text = await file.text();
@@ -109,6 +111,50 @@ export default function KernelTraceViewer() {
     const a = document.createElement("a");
     a.href = url; a.download = "syscalls.json"; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   };
+
+  const saveToTxt = (eventsToSave: KernelEvent[]) => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const lines = eventsToSave.map(e => {
+      const eventTime = e.ts || e.timestamp || Date.now();
+      const time = new Date(eventTime).toISOString();
+      const eventName = e.name || e.eventName || 'unknown';
+      const pid = e.pid || e.processInfo?.pid || '-';
+      const tid = e.tid || e.processInfo?.tid || '-';
+      const comm = e.comm || e.processInfo?.comm || '-';
+      const args = e.args ? JSON.stringify(e.args) : '';
+      return `[${time}] ${e.category.toUpperCase()} | ${eventName} | PID:${pid} TID:${tid} COMM:${comm} | ${args}`;
+    });
+    const content = `# Linux OS Activity Log\n# Generated: ${new Date().toISOString()}\n# Total Events: ${eventsToSave.length}\n\n${lines.join('\n')}`;
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `os-activity-${timestamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Auto-save to txt file every 30 seconds when recording
+  React.useEffect(() => {
+    if (autoLog && streaming && events.length > 0) {
+      if (logIntervalRef.current) {
+        clearInterval(logIntervalRef.current);
+      }
+      logIntervalRef.current = setInterval(() => {
+        if (events.length > 0) {
+          saveToTxt(events);
+        }
+      }, 30000); // Save every 30 seconds
+    }
+    return () => {
+      if (logIntervalRef.current) {
+        clearInterval(logIntervalRef.current);
+        logIntervalRef.current = null;
+      }
+    };
+  }, [autoLog, streaming, events]);
 
   const generateSampleData = () => {
     // Generate sample syscall data for demonstration - core system operations only
@@ -209,28 +255,65 @@ export default function KernelTraceViewer() {
 
   return (
     <section aria-label="Kernel Traces Import" className="space-y-3" data-recorder-ignore="true">
-      <header className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">System Operations (Syscalls)</h3>
-        <div className="flex items-center gap-2">
-          <input aria-label="Upload Tracee JSON/NDJSON" type="file" accept=".json,.ndjson,.log,.txt" onChange={onInput} className="text-xs" />
-          <Button size="sm" variant="outline" onClick={generateSampleData}>Sample Data</Button>
-          <Button size="sm" variant="outline" onClick={downloadJSON} disabled={!filtered.length}>Export JSON</Button>
-        </div>
+      <header>
+        <h3 className="text-sm font-semibold mb-2">System Operations (Syscalls)</h3>
       </header>
-      <div className="flex items-center gap-2">
-        <Input
-          type="url"
-          placeholder="ws://tracee-stream.default.svc.cluster.local:8081"
-          value={streamUrl}
-          onChange={(e)=>setStreamUrl(e.target.value)}
-          aria-label="NDJSON stream URL"
-          className="h-8 text-xs"
-        />
-        {!streaming ? (
-          <Button size="sm" variant="secondary" onClick={connect} disabled={!streamUrl}>Connect</Button>
-        ) : (
-          <Button size="sm" variant="destructive" onClick={disconnect}>Disconnect</Button>
-        )}
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Input
+            type="url"
+            placeholder="ws://tracee-stream.default.svc.cluster.local:8081"
+            value={streamUrl}
+            onChange={(e)=>setStreamUrl(e.target.value)}
+            aria-label="NDJSON stream URL"
+            className="h-8 text-xs flex-1"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {!streaming ? (
+            <Button size="sm" variant="secondary" onClick={connect} disabled={!streamUrl} className="w-full">
+              ▶ Start Recording
+            </Button>
+          ) : (
+            <Button size="sm" variant="destructive" onClick={disconnect} className="w-full">
+              ⏹ Stop Recording
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={generateSampleData} className="w-full">
+            Sample Data
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="sm" variant="outline" onClick={downloadJSON} disabled={!filtered.length} className="w-full text-xs">
+            Export JSON
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => saveToTxt(events)} disabled={!events.length} className="w-full text-xs">
+            Save TXT
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-between text-xs">
+          <label className="inline-flex items-center gap-2">
+            <Switch checked={autoLog} onCheckedChange={setAutoLog} aria-label="Auto-save to TXT" />
+            <span>Auto-save (30s)</span>
+          </label>
+          {autoLog && streaming && (
+            <span className="text-green-500">● Auto-logging</span>
+          )}
+        </div>
+
+        <div className="text-xs">
+          <input
+            aria-label="Upload Tracee JSON/NDJSON"
+            type="file"
+            accept=".json,.ndjson,.log,.txt"
+            onChange={onInput}
+            className="text-xs w-full"
+          />
+        </div>
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
         <div>Events: <span className="text-foreground font-medium">{events.length}</span></div>
